@@ -1,3 +1,4 @@
+import { create } from "domain";
 import e from "express";
 import mongoose from "mongoose";
 
@@ -28,7 +29,10 @@ const bookingSchema = new mongoose.Schema({
         enum: ["PENDING","PAID"],  
         default: "PENDING",
     }      
-});    
+});
+
+bookingSchema.index({userId:1,createdAt:-1});
+bookingSchema.index({hotelId:1})
 
 const Booking = mongoose.model("Booking", bookingSchema);
 export default Booking;

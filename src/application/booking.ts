@@ -109,3 +109,27 @@ export const getBookingById = async (
   }
 };
 
+export const getBookingsForUser = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const requestedUserId=req.params.userId;
+
+    const { userId:authUserId } = getAuth(req);
+    if (requestedUserId!==authUserId) {
+      throw new UnauthorizedError("Unauthorized");
+    }
+
+    const bookings = await Booking.find({userId:requestedUserId })
+      .populate("hotelId")
+      .sort({ createdAt: -1 });
+
+    res.status(200).json(bookings);
+  }
+  catch (error) {
+    next(error);
+  }
+}
+

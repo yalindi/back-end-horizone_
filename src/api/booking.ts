@@ -1,6 +1,6 @@
 import isAuthenticated from "./middleware/authentication-middleware";
 import express from "express";
-import {createBooking,getAllBookingsForHotel,getAllBookings,getBookingById} from "../application/booking"
+import {createBooking,getAllBookingsForHotel,getAllBookings,getBookingById,getBookingsForUser} from "../application/booking"
 
 const bookingRouter = express.Router();
 bookingRouter
@@ -15,5 +15,9 @@ bookingRouter
 bookingRouter
     .route("/:bookingId")
     .get(isAuthenticated, getBookingById);
+
+bookingRouter
+    .route("/user/:userId")
+    .get(isAuthenticated, getBookingsForUser);
 
 export default bookingRouter;
