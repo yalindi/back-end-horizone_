@@ -21,6 +21,11 @@ export const createCheckoutSession = async (
         if(!booking){
             return res.status(404).json({message:"Booking not found"});
         }
+
+        if(booking.paymentStatus==="PAID"){
+            return res.status(400).json({message:"Booking is already paid"});
+        }
+
         const hotel = await Hotel.findById(booking.hotelId);
         if(!hotel || !hotel.stripePriceId){
             return res.status(404).json({message:"Hotel not found" });
@@ -67,9 +72,21 @@ export const retrieveSessionStatus = async (
         if(!hotel){
             return res.status(404).json({message:"Hotel not found" });
         }
+        // if(checkoutSession.payment_status==="paid" && booking.paymentStatus !=="PAID"){
+        //     await Booking.findByIdAndUpdate(booking._id,{paymentStatus:"PAID"});
+        // }
+
         if(checkoutSession.payment_status==="paid" && booking.paymentStatus !=="PAID"){
-            await Booking.findByIdAndUpdate(booking._id,{paymentStatus:"paid"});
+            const result= await Booking.findOneAndUpdate(
+                {_id:booking._id, paymentStatus:"PENDING"},
+                {paymentStatus:"PAID"},
+                {new:true}
+            );
+            if(!result){
+                console.log("Booking payment status was already updated");
+            }
         }
+
         res.status(200).json({
             bookingId:booking._id,
             booking,
