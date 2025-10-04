@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import { Embeddings } from "openai/resources/embeddings";
+import stripe from "../stripe";
 
 const hotelSchema = new mongoose.Schema({
     name: {
@@ -21,6 +22,9 @@ const hotelSchema = new mongoose.Schema({
     price: {
         type: Number,
         required: true,
+    },
+    stripePriceId: {
+        type: String,
     },
     rating: {
         type: Number,

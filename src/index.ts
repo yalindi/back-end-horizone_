@@ -7,30 +7,38 @@ import hotelsRouter from "./api/hotel";
 import connectDB from "./infrastructure/db";
 import reviewRouter from "./api/review";
 import locationsRouter from "./api/location";
+import bookingRouter from "./api/booking";
+import paymentRouter from "./api/payment";
 import globalErrorHandlingMiddleware from "./api/middleware/global-error-handling-middleware";
 
 import { clerkMiddleware } from "@clerk/express";
+import bodyParser from "body-parser";
+import { handleWebhook } from "./application/payment";
 
 const app = express();
+
+app.post(
+  "api/stripe/webhook",
+  bodyParser.raw({ type: "application/json" }),
+  handleWebhook
+)
 
 // Convert HTTP payloads into JS objects
 app.use(express.json());
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: process.env.CORS_ORIGIN,
   })
 );
 
 app.use(clerkMiddleware());
 
-// app.use((req, res, next) => {
-//   console.log(req.method, req.url);
-//   next();
-// });
 
 app.use("/api/hotels", hotelsRouter);
 app.use("/api/reviews", reviewRouter);
 app.use("/api/locations", locationsRouter);
+app.use("/api/bookings", bookingRouter);
+app.use("/api/payments", paymentRouter);
 
 
 app.use(globalErrorHandlingMiddleware);

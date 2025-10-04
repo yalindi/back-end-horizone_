@@ -3,11 +3,9 @@ import NotFoundError from "../domain/errors/not-found-error";
 import ValidationError from "../domain/errors/validation-error";
 import { generateEmbedding } from "./utils/embeddings";
 import stripe from "../infrastructure/stripe";
-
 import { CreateHotelDTO, SearchHotelDTO } from "../domain/dtos/hotel";
-
 import { Request, Response, NextFunction } from "express";
-import { z } from "zod";
+
 
 export const getAllHotels = async (
   req: Request,
@@ -18,6 +16,49 @@ export const getAllHotels = async (
     const hotels = await Hotel.find();
     res.status(200).json(hotels);
     return;
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const createHotel = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const hotelData = req.body;
+    const result = CreateHotelDTO.safeParse(hotelData);
+
+    if (!result.success) {
+      throw new ValidationError(`${result.error.message}`);
+    }
+
+    const embedding = await generateEmbedding(
+      `${result.data.name} ${result.data.description} ${result.data.location} ${result.data.price}`
+    );
+
+    // Create Stripe product with default price for the nightly rate
+    const product = await stripe.products.create({
+      name: result.data.name,
+      description: result.data.description,
+      default_price_data: {
+        unit_amount: Math.round(result.data.price * 100),
+        currency: "usd",
+      },
+    });
+
+    const defaultPriceId =
+      typeof product.default_price === "string"
+        ? product.default_price
+        : (product.default_price as any)?.id;
+
+    await Hotel.create({
+      ...result.data,
+      embedding,
+      stripePriceId: defaultPriceId,
+    });
+    res.status(201).send();
   } catch (error) {
     next(error);
   }
@@ -67,48 +108,7 @@ export const getAllHotelsBySearch = async (
   }
 };
 
-export const createHotel = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const hotelData = req.body;
-    const result = CreateHotelDTO.safeParse(hotelData);
 
-    if (!result.success) {
-      throw new ValidationError(`${result.error.message}`);
-    }
-
-    const embedding = await generateEmbedding(
-      `${result.data.name} ${result.data.description} ${result.data.location} ${result.data.price}`
-    );
-
-    // Create Stripe product with default price for the nightly rate
-    const product = await stripe.products.create({
-      name: result.data.name,
-      description: result.data.description,
-      default_price_data: {
-        unit_amount: Math.round(result.data.price * 100),
-        currency: "usd",
-      },
-    });
-
-    const defaultPriceId =
-      typeof product.default_price === "string"
-        ? product.default_price
-        : (product.default_price as any)?.id;
-
-    await Hotel.create({
-      ...result.data,
-      embedding,
-      stripePriceId: defaultPriceId,
-    });
-    res.status(201).send();
-  } catch (error) {
-    next(error);
-  }
-};
 
 export const getHotelById = async (
   req: Request,
