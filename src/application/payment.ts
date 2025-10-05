@@ -62,7 +62,7 @@ export const retrieveSessionStatus = async (
   res: Response
 ) => {
     try{
-        const sessionId = req.params.sessionId as string;
+        const sessionId = req.query.sessionId as string;
         const checkoutSession = await stripe.checkout.sessions.retrieve(sessionId);
         const booking=await Booking.findById(checkoutSession.metadata?.bookingid);
         if(!booking){
