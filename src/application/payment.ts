@@ -8,7 +8,7 @@ import { ClientSecrets } from "openai/resources/realtime/client-secrets";
 import { stat } from "fs";
 import { custom } from "zod";
 
-const FRONTEND_URL = process.env.CORS_ORIGIN || "http://localhost:5173";
+const FRONTEND_URL = process.env.CORS_ORIGIN;
 const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET as string;
 
 export const createCheckoutSession = async (
@@ -49,7 +49,7 @@ export const createCheckoutSession = async (
             return_url:`${FRONTEND_URL}/booking/complete?session_id={CHECKOUT_SESSION_ID}`,
             metadata:{bookingid:booking._id.toString()},
         });
-        res.send({ClientSecrets:session.client_secret});
+        res.send({clientSecret:session.client_secret});
     }
     catch(error){
         console.error("Error creating checkout session:",error);
