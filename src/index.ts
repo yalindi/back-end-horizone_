@@ -18,7 +18,7 @@ import { handleWebhook } from "./application/payment";
 const app = express();
 
 app.post(
-  "api/stripe/webhook",
+  "/api/stripe/webhook",
   bodyParser.raw({ type: "application/json" }),
   handleWebhook
 )

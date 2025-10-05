@@ -5,11 +5,11 @@ import { createCheckoutSession,retrieveSessionStatus } from "../application/paym
 const paymentRouter = express.Router();
 
 paymentRouter
-    .route("/payments/create-checkout-session")
+    .route("/create-checkout-session")
     .post(isAuthenticated, createCheckoutSession);
 
 paymentRouter
-    .route("/payments/session-status")
+    .route("/session-status")
     .get(isAuthenticated, retrieveSessionStatus);
 
 export default paymentRouter;
