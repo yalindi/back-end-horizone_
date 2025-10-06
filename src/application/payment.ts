@@ -11,146 +11,48 @@ import { custom } from "zod";
 const FRONTEND_URL = process.env.CORS_ORIGIN;
 const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET as string;
 
-// export const createCheckoutSession = async (
-//   req: Request,
-//   res: Response
-// ) => {
-//     try{
-//         const bookingid =req.body.bookingId as string;
-//         const booking = await Booking.findById(bookingid);
-//         if(!booking){
-//             return res.status(404).json({message:"Booking not found"});
-//         }
-
-//         if(booking.paymentStatus==="PAID"){
-//             return res.status(400).json({message:"Booking is already paid"});
-//         }
-
-//         const hotel = await Hotel.findById(booking.hotelId);
-//         if(!hotel || !hotel.stripePriceId){
-//             return res.status(404).json({message:"Hotel not found" });
-//         }
-
-//         const checkIn=new Date(booking.checkIn);
-//         const checkOut=new Date(booking.checkOut);
-//         const NumberOfNights = Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24));
-
-//         if (!hotel.stripePriceId) {
-//             return res.status(400).json({ message: "Hotel does not have a Stripe price ID" });
-//         }
-//         const lineItem={
-//             price: hotel.stripePriceId,
-//             quantity: NumberOfNights,
-//         } as const;
-//         const session = await stripe.checkout.sessions.create({
-//             ui_mode:"embedded",
-//             line_items:[lineItem],
-//             mode:"payment",
-//             return_url:`${FRONTEND_URL}/booking/complete?session_id={CHECKOUT_SESSION_ID}`,
-//             metadata:{bookingid:booking._id.toString()},
-//         });
-//         res.send({clientSecret:session.client_secret});
-//     }
-//     catch(error){
-//         console.error("Error creating checkout session:",error);
-//         res.status(500).json({message:"Failed to create checkout session"});
-//     }
-// };
-
 export const createCheckoutSession = async (
   req: Request,
   res: Response
 ) => {
     try{
-        const bookingid = req.body.bookingId as string;
-        
-        console.log('🔍 [Payment Debug] Processing checkout for booking:', bookingid);
-        console.log('🔍 [Payment Debug] Request body:', req.body);
-        
+        const bookingid =req.body.bookingId as string;
         const booking = await Booking.findById(bookingid);
         if(!booking){
-            console.log('❌ [Payment Debug] Booking not found for ID:', bookingid);
             return res.status(404).json({message:"Booking not found"});
         }
 
-        console.log('✅ [Payment Debug] Booking found:', {
-            _id: booking._id,
-            hotelId: booking.hotelId,
-            hotelIdString: booking.hotelId?.toString(),
-            hotelIdType: typeof booking.hotelId,
-            paymentStatus: booking.paymentStatus,
-            checkIn: booking.checkIn,
-            checkOut: booking.checkOut
-        });
-
         if(booking.paymentStatus==="PAID"){
-            console.log('❌ [Payment Debug] Booking already paid');
             return res.status(400).json({message:"Booking is already paid"});
         }
 
-        console.log('🔍 [Payment Debug] Looking for hotel with ID:', booking.hotelId);
-        
-        // TEMPORARY: List all hotels to see what exists
-        const allHotels = await Hotel.find({}).select('_id name').limit(5);
-        console.log('🔍 [Payment Debug] First 5 hotels in database:', allHotels);
-
         const hotel = await Hotel.findById(booking.hotelId);
-        
-        console.log('🔍 [Payment Debug] Hotel lookup result:', hotel ? {
-            _id: hotel._id,
-            name: hotel.name,
-            stripePriceId: hotel.stripePriceId ? 'PRESENT' : 'MISSING'
-        } : 'NOT FOUND');
-
-        if(!hotel){
-            console.log('❌ [Payment Debug] Hotel not found for ID:', booking.hotelId);
-            console.log('❌ [Payment Debug] Hotel ID type:', typeof booking.hotelId);
-            console.log('❌ [Payment Debug] Hotel ID value:', booking.hotelId);
-            
-            // Return detailed error information
-            return res.status(404).json({ 
-                message: "Hotel not found",
-                details: {
-                    bookingHotelId: booking.hotelId?.toString(),
-                    availableHotels: allHotels.map(h => ({ id: h._id.toString(), name: h.name }))
-                }
-            });
+        if(!hotel || !hotel.stripePriceId){
+            return res.status(404).json({message:"Hotel not found" });
         }
 
-        // FIXED: Remove duplicate stripePriceId check
-        if (!hotel.stripePriceId) {
-            console.log('❌ [Payment Debug] Hotel found but missing stripePriceId');
-            return res.status(400).json({ 
-                message: "Hotel does not have a Stripe price ID" 
-            });
-        }
-
-        console.log('✅ [Payment Debug] Hotel successfully found with stripePriceId');
-
-        const checkIn = new Date(booking.checkIn);
-        const checkOut = new Date(booking.checkOut);
+        const checkIn=new Date(booking.checkIn);
+        const checkOut=new Date(booking.checkOut);
         const NumberOfNights = Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24));
 
-        console.log('🔍 [Payment Debug] Creating Stripe session for', NumberOfNights, 'nights');
-
-        const lineItem = {
+        if (!hotel.stripePriceId) {
+            return res.status(400).json({ message: "Hotel does not have a Stripe price ID" });
+        }
+        const lineItem={
             price: hotel.stripePriceId,
             quantity: NumberOfNights,
         } as const;
-
         const session = await stripe.checkout.sessions.create({
-            ui_mode: "embedded",
-            line_items: [lineItem],
-            mode: "payment",
-            return_url: `${FRONTEND_URL}/booking/complete?session_id={CHECKOUT_SESSION_ID}`,
-            metadata: { bookingid: booking._id.toString() },
+            ui_mode:"embedded",
+            line_items:[lineItem],
+            mode:"payment",
+            return_url:`${FRONTEND_URL}/booking/complete?session_id={CHECKOUT_SESSION_ID}`,
+            metadata:{bookingid:booking._id.toString()},
         });
-
-        console.log('✅ [Payment Debug] Stripe session created successfully:', session.id);
-        res.send({ clientSecret: session.client_secret });
+        res.send({clientSecret:session.client_secret});
     }
     catch(error){
-        console.error("❌ [Payment Debug] Error creating checkout session:", error);
+        console.error("Error creating checkout session:",error);
         res.status(500).json({message:"Failed to create checkout session"});
     }
 };
