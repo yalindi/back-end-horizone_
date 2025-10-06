@@ -164,28 +164,13 @@ export const getAllHotelsWithFilters = async (
       if (typeof location === "string") {
         locationNames = location.split(',').map(loc => loc.trim()).filter(loc => loc);
       }
-      console.log('Parsed location names:', locationNames);
 
       if (locationNames.length > 0) {
-        // First, let's see what locations actually exist in DB
-        const existingLocations = await Hotel.distinct('location');
-        console.log('All existing locations in DB:', existingLocations);
-        
-        // Check if our filtered locations exist
-        const matchingLocations = locationNames.filter(loc => 
-          existingLocations.some(existing => 
-            existing.toLowerCase().includes(loc.toLowerCase())
-          )
-        );
-        console.log('Matching locations found:', matchingLocations);
-
-        if (matchingLocations.length > 0) {
-          // Try different query approaches
-          console.log('Trying location query with:', matchingLocations);
-          query.location = { $in: matchingLocations };
-        } else {
-          console.log('No matching locations found in database');
-        }
+        // Use partial matching instead of exact matching
+        query.location = {
+          $in: locationNames.map(name => new RegExp(name, 'i'))
+        };
+        console.log('Using partial match query:', query.location);
       }
     }
 
@@ -308,21 +293,21 @@ export const createHotel = async (
   }
 };
 
-export const getHotelLocations=async(
+export const getHotelLocations = async (
   req: Request,
-  res:Response,
-  next:NextFunction
+  res: Response,
+  next: NextFunction
 
-)=>{
-  try{
+) => {
+  try {
     const locations = await Hotel.distinct('location');
-    const locationObjects=locations.map((name,index)=>({
-      _id:(index+1).toString(),
+    const locationObjects = locations.map((name, index) => ({
+      _id: (index + 1).toString(),
       name
     }))
     res.status(200).json(locationObjects)
     return
-  }catch(error){
+  } catch (error) {
     next(error)
   }
 
