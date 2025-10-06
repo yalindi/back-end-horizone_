@@ -147,18 +147,12 @@ export const getAllHotelsWithFilters = async (
       search
     } = req.query;
 
-    // DEBUG: Log what we received
-    console.log('Received location parameter:', location);
-    console.log('Type of location:', typeof location);
-
     const pageNum = Math.max(1, parseInt(page as string) || 1);
     const limitNum = Math.min(50, Math.max(1, parseInt(limit as string) || 12));
     const skip = (pageNum - 1) * limitNum;
 
-    // Build query object
     const query: any = {};
 
-    // Location filter - ENHANCED DEBUGGING
     if (location) {
       let locationNames: string[] = [];
       if (typeof location === "string") {
