@@ -56,7 +56,7 @@ export const getAllHotelsWithFilters = async (
         locationNames = location.split(',').map(loc => loc.trim()).filter(loc => loc);
       }
       if (locationNames.length > 0) {
-        query.location = { $in: locationNames };
+        query.locationNames.map((name:any)=>new RegExp(`^${name}$`,'i'));
       }
     }
 
