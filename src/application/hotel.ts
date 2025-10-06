@@ -38,7 +38,16 @@ export const getAllHotels = async (
       search
     } = req.query;
 
-    // Build query object
+    // Check if any filter parameters are present
+    const hasFilters = page || limit || location || minPrice || maxPrice || sortBy || search;
+    
+    // If no filters, return simple array (backward compatible)
+    if (!hasFilters) {
+      const hotels = await Hotel.find().populate('reviews');
+      return res.status(200).json(hotels); // Return simple array
+    }
+
+    // Build query object for filtered results
     const query: any = {};
 
     // Location filter (supports multiple locations comma-separated)
@@ -101,7 +110,7 @@ export const getAllHotels = async (
       Hotel.countDocuments(query)
     ]);
 
-    // Return enhanced response with pagination info
+    // Return enhanced response with pagination info (for new filtering system)
     res.status(200).json({
       hotels,
       totalCount,
