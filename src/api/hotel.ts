@@ -1,7 +1,7 @@
 import express from "express";
 import { Request, Response, NextFunction } from "express";
 
-import { getAllHotels,getHotelById,updateHotel,patchHotel,deleteHotel,createHotel,getAllHotelsBySearch,createHotelStripePrice } from "../application/hotel";  
+import { getAllHotels,getHotelById,updateHotel,patchHotel,deleteHotel,createHotel,getAllHotelsBySearch,createHotelStripePrice,getHotelLocations } from "../application/hotel";  
 import isAuthenticated from "./middleware/authentication-middleware";
 import isAdmin from "./middleware/authorization-middleware";
 import { respondToAIQuery } from "../application/ai";
@@ -37,5 +37,9 @@ hotelsRouter
 hotelsRouter
   .route("/:id/stripe/price")
   .post(isAuthenticated,isAdmin,createHotelStripePrice);
+
+hotelsRouter
+  .route("/locations")
+  .get(getHotelLocations)
 
 export default hotelsRouter;

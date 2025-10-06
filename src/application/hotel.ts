@@ -5,7 +5,22 @@ import { generateEmbedding } from "./utils/embeddings";
 import stripe from "../infrastructure/stripe";
 import { CreateHotelDTO, SearchHotelDTO } from "../domain/dtos/hotel";
 import { Request, Response, NextFunction } from "express";
+import { getErrorMap } from "zod";
 
+
+// export const getAllHotels = async (
+//   req: Request,
+//   res: Response,
+//   next: NextFunction
+// ) => {
+//   try {
+//     const hotels = await Hotel.find();
+//     res.status(200).json(hotels);
+//     return;
+//   } catch (error) {
+//     next(error);
+//   }
+// };
 
 export const getAllHotels = async (
   req: Request,
@@ -13,8 +28,88 @@ export const getAllHotels = async (
   next: NextFunction
 ) => {
   try {
-    const hotels = await Hotel.find();
-    res.status(200).json(hotels);
+    const {
+      page = 1,
+      limit = 12,
+      location,
+      minPrice,
+      maxPrice,
+      sortBy = 'featured',
+      search
+    } = req.query;
+
+    // Build query object
+    const query: any = {};
+
+    // Location filter (supports multiple locations comma-separated)
+    if (location) {
+      let locationNames: string[] = [];
+      if (typeof location === "string") {
+        locationNames = location.split(',');
+      } else if (Array.isArray(location)) {
+        locationNames = location.flatMap(loc =>
+          typeof loc === "string" ? loc.split(',') : []
+        );
+      }
+      query.location = { $in: locationNames };
+    }
+
+    // Price range filter
+    if (minPrice || maxPrice) {
+      query.price = {};
+      if (minPrice) query.price.$gte = parseInt(minPrice as string);
+      if (maxPrice) query.price.$lte = parseInt(maxPrice as string);
+    }
+
+    // Search filter across multiple fields
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { location: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    // Sort options
+    let sortOptions: any = {};
+    switch (sortBy) {
+      case 'price_low':
+        sortOptions = { price: 1 };
+        break;
+      case 'price_high':
+        sortOptions = { price: -1 };
+        break;
+      case 'rating':
+        sortOptions = { rating: -1 };
+        break;
+      case 'name':
+        sortOptions = { name: 1 };
+        break;
+      default:
+        sortOptions = { createdAt: -1 }; // Featured/Newest first
+    }
+
+    const skip = (parseInt(page as string) - 1) * parseInt(limit as string);
+
+    // Get hotels with filters and pagination
+    const [hotels, totalCount] = await Promise.all([
+      Hotel.find(query)
+        .sort(sortOptions)
+        .skip(skip)
+        .limit(parseInt(limit as string))
+        .populate('reviews'),
+      Hotel.countDocuments(query)
+    ]);
+
+    // Return enhanced response with pagination info
+    res.status(200).json({
+      hotels,
+      totalCount,
+      totalPages: Math.ceil(totalCount / parseInt(limit as string)),
+      currentPage: parseInt(page as string),
+      hasNextPage: parseInt(page as string) * parseInt(limit as string) < totalCount,
+      hasPrevPage: parseInt(page as string) > 1
+    });
     return;
   } catch (error) {
     next(error);
@@ -62,6 +157,26 @@ export const createHotel = async (
   } catch (error) {
     next(error);
   }
+};
+
+export const getHotelLocations=async(
+  req: Request,
+  res:Response,
+  next:NextFunction
+
+)=>{
+  try{
+    const locations = await Hotel.distinct('location');
+    const locationObjects=locations.map((name,index)=>({
+      _id:index+1,
+      name
+    }))
+    res.status(200).json(locationObjects)
+    return
+  }catch(error){
+    next(error)
+  }
+
 };
 
 export const getAllHotelsBySearch = async (
