@@ -15,9 +15,13 @@ const preMiddleware = (req:Request, res:Response, next:NextFunction) => {
 };
 
 hotelsRouter
-  .route("/")
-  .get(getAllHotels)
-  .post(isAuthenticated,isAdmin,createHotel);
+  .route("/filter")
+  .get(getAllHotelsWithFilters);
+
+hotelsRouter
+  .route("/locations")
+  .get(getHotelLocations);
+
 
 hotelsRouter
   .route("/ai")
@@ -39,11 +43,8 @@ hotelsRouter
   .post(isAuthenticated,isAdmin,createHotelStripePrice);
 
 hotelsRouter
-  .route("/filter")
-  .get(getAllHotelsWithFilters);
-
-hotelsRouter
-  .route("/locations")
-  .get(getHotelLocations);
+  .route("/")
+  .get(getAllHotels)
+  .post(isAuthenticated,isAdmin,createHotel);
 
 export default hotelsRouter;
