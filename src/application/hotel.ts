@@ -8,21 +8,22 @@ import { Request, Response, NextFunction } from "express";
 import { getErrorMap } from "zod";
 
 
-// export const getAllHotels = async (
-//   req: Request,
-//   res: Response,
-//   next: NextFunction
-// ) => {
-//   try {
-//     const hotels = await Hotel.find();
-//     res.status(200).json(hotels);
-//     return;
-//   } catch (error) {
-//     next(error);
-//   }
-// };
-
 export const getAllHotels = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const hotels = await Hotel.find();
+    res.status(200).json(hotels);
+    return;
+  } catch (error) {
+    next(error);
+  }
+};
+
+
+export const getAllHotelsWithFilters = async (
   req: Request,
   res: Response,
   next: NextFunction
