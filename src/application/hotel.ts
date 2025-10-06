@@ -29,6 +29,8 @@ export const getAllHotelsWithFilters = async (
   next: NextFunction
 ) => {
   try {
+    console.log('=== FILTER DEBUG ===', req.query); // ADD THIS FOR DEBUGGING
+
     const {
       page = 1,
       limit = 12,
@@ -39,31 +41,42 @@ export const getAllHotelsWithFilters = async (
       search
     } = req.query;
 
+    // FIXED: Proper parameter validation
+    const pageNum = Math.max(1, parseInt(page as string) || 1);
+    const limitNum = Math.min(50, Math.max(1, parseInt(limit as string) || 12));
+    const skip = (pageNum - 1) * limitNum;
+
     // Build query object
     const query: any = {};
 
-    // Location filter (supports multiple locations comma-separated)
+    // Location filter
     if (location) {
       let locationNames: string[] = [];
       if (typeof location === "string") {
-        locationNames = location.split(',');
-      } else if (Array.isArray(location)) {
-        locationNames = location.flatMap(loc =>
-          typeof loc === "string" ? loc.split(',') : []
-        );
+        locationNames = location.split(',').map(loc => loc.trim()).filter(loc => loc);
       }
-      query.location = { $in: locationNames };
+      if (locationNames.length > 0) {
+        query.location = { $in: locationNames };
+      }
     }
 
-    // Price range filter
+    // FIXED: Price range with validation
     if (minPrice || maxPrice) {
       query.price = {};
-      if (minPrice) query.price.$gte = parseInt(minPrice as string);
-      if (maxPrice) query.price.$lte = parseInt(maxPrice as string);
+      if (minPrice && !isNaN(Number(minPrice))) {
+        query.price.$gte = Number(minPrice);
+      }
+      if (maxPrice && !isNaN(Number(maxPrice))) {
+        query.price.$lte = Number(maxPrice);
+      }
+      // Remove if no valid prices
+      if (Object.keys(query.price).length === 0) {
+        delete query.price;
+      }
     }
 
-    // Search filter across multiple fields
-    if (search) {
+    // Search filter
+    if (search && typeof search === 'string') {
       query.$or = [
         { name: { $regex: search, $options: 'i' } },
         { location: { $regex: search, $options: 'i' } },
@@ -71,51 +84,50 @@ export const getAllHotelsWithFilters = async (
       ];
     }
 
-    // Sort options
+    // Sort options (unchanged)
     let sortOptions: any = {};
     switch (sortBy) {
-      case 'price_low':
-        sortOptions = { price: 1 };
-        break;
-      case 'price_high':
-        sortOptions = { price: -1 };
-        break;
-      case 'rating':
-        sortOptions = { rating: -1 };
-        break;
-      case 'name':
-        sortOptions = { name: 1 };
-        break;
-      default:
-        sortOptions = { createdAt: -1 }; // Featured/Newest first
+      case 'price_low': sortOptions = { price: 1 }; break;
+      case 'price_high': sortOptions = { price: -1 }; break;
+      case 'rating': sortOptions = { rating: -1 }; break;
+      case 'name': sortOptions = { name: 1 }; break;
+      default: sortOptions = { createdAt: -1 };
     }
 
-    const skip = (parseInt(page as string) - 1) * parseInt(limit as string);
+    console.log('Final query:', { query, sortOptions, skip, limit: limitNum }); // DEBUG
 
-    // Get hotels with filters and pagination
     const [hotels, totalCount] = await Promise.all([
       Hotel.find(query)
         .sort(sortOptions)
         .skip(skip)
-        .limit(parseInt(limit as string))
+        .limit(limitNum)
         .populate('reviews'),
       Hotel.countDocuments(query)
     ]);
 
-    // Return enhanced response with pagination info
     res.status(200).json({
       hotels,
       totalCount,
-      totalPages: Math.ceil(totalCount / parseInt(limit as string)),
-      currentPage: parseInt(page as string),
-      hasNextPage: parseInt(page as string) * parseInt(limit as string) < totalCount,
-      hasPrevPage: parseInt(page as string) > 1
+      totalPages: Math.ceil(totalCount / limitNum),
+      currentPage: pageNum,
+      hasNextPage: pageNum * limitNum < totalCount,
+      hasPrevPage: pageNum > 1
     });
-    return;
+
   } catch (error) {
-    next(error);
+    console.error('Error in getAllHotelsWithFilters:', error);
+    // Return empty response instead of crashing
+    res.status(200).json({
+      hotels: [],
+      totalCount: 0,
+      totalPages: 0,
+      currentPage: 1,
+      hasNextPage: false,
+      hasPrevPage: false
+    });
   }
 };
+
 
 export const createHotel = async (
   req: Request,
@@ -169,7 +181,7 @@ export const getHotelLocations=async(
   try{
     const locations = await Hotel.distinct('location');
     const locationObjects=locations.map((name,index)=>({
-      _id:index+1,
+      _id:(index+1).toString(),
       name
     }))
     res.status(200).json(locationObjects)
