@@ -23,111 +23,6 @@ export const getAllHotels = async (
 };
 
 
-// export const getAllHotelsWithFilters = async (
-//   req: Request,
-//   res: Response,
-//   next: NextFunction
-// ) => {
-//   try {
-//     console.log('=== FILTER DEBUG ===', req.query); // ADD THIS FOR DEBUGGING
-
-//     const {
-//       page = 1,
-//       limit = 12,
-//       location,
-//       minPrice,
-//       maxPrice,
-//       sortBy = 'featured',
-//       search
-//     } = req.query;
-
-//     // FIXED: Proper parameter validation
-//     const pageNum = Math.max(1, parseInt(page as string) || 1);
-//     const limitNum = Math.min(50, Math.max(1, parseInt(limit as string) || 12));
-//     const skip = (pageNum - 1) * limitNum;
-
-//     // Build query object
-//     const query: any = {};
-
-//     // Location filter
-//     if (location) {
-//       let locationNames: string[] = [];
-//       if (typeof location === "string") {
-//         locationNames = location.split(',').map(loc => loc.trim()).filter(loc => loc);
-//       }
-//       if (locationNames.length > 0) {
-//         query.location={ $in: locationNames.map(name => new RegExp(`^${name}$`, 'i')) };
-//       }
-//     }
-
-//     // FIXED: Price range with validation
-//     if (minPrice || maxPrice) {
-//       query.price = {};
-//       if (minPrice && !isNaN(Number(minPrice))) {
-//         query.price.$gte = Number(minPrice);
-//       }
-//       if (maxPrice && !isNaN(Number(maxPrice))) {
-//         query.price.$lte = Number(maxPrice);
-//       }
-//       // Remove if no valid prices
-//       if (Object.keys(query.price).length === 0) {
-//         delete query.price;
-//       }
-//     }
-
-//     // Search filter
-//     if (search && typeof search === 'string') {
-//       query.$or = [
-//         { name: { $regex: search, $options: 'i' } },
-//         { location: { $regex: search, $options: 'i' } },
-//         { description: { $regex: search, $options: 'i' } }
-//       ];
-//     }
-
-//     // Sort options (unchanged)
-//     let sortOptions: any = {};
-//     switch (sortBy) {
-//       case 'price_low': sortOptions = { price: 1 }; break;
-//       case 'price_high': sortOptions = { price: -1 }; break;
-//       case 'rating': sortOptions = { rating: -1 }; break;
-//       case 'name': sortOptions = { name: 1 }; break;
-//       default: sortOptions = { createdAt: -1 };
-//     }
-
-//     console.log('Final query:', { query, sortOptions, skip, limit: limitNum }); // DEBUG
-
-//     const [hotels, totalCount] = await Promise.all([
-//       Hotel.find(query)
-//         .sort(sortOptions)
-//         .skip(skip)
-//         .limit(limitNum)
-//         .populate('reviews'),
-//       Hotel.countDocuments(query)
-//     ]);
-
-//     res.status(200).json({
-//       hotels,
-//       totalCount,
-//       totalPages: Math.ceil(totalCount / limitNum),
-//       currentPage: pageNum,
-//       hasNextPage: pageNum * limitNum < totalCount,
-//       hasPrevPage: pageNum > 1
-//     });
-
-//   } catch (error) {
-//     console.error('Error in getAllHotelsWithFilters:', error);
-//     // Return empty response instead of crashing
-//     res.status(200).json({
-//       hotels: [],
-//       totalCount: 0,
-//       totalPages: 0,
-//       currentPage: 1,
-//       hasNextPage: false,
-//       hasPrevPage: false
-//     });
-//   }
-// };
-
 export const getAllHotelsWithFilters = async (
   req: Request,
   res: Response,
@@ -206,7 +101,7 @@ export const getAllHotelsWithFilters = async (
     console.log('Sort options:', sortOptions);
     console.log('Skip:', skip, 'Limit:', limitNum);
 
-    // Let's also check what hotels exist without filters
+    //check what hotels exist without filters
     const allHotelsCount = await Hotel.countDocuments({});
     console.log('Total hotels in database:', allHotelsCount);
 
@@ -234,14 +129,6 @@ export const getAllHotelsWithFilters = async (
 
   } catch (error) {
     console.error('Error in getAllHotelsWithFilters:', error);
-    res.status(200).json({
-      hotels: [],
-      totalCount: 0,
-      totalPages: 0,
-      currentPage: 1,
-      hasNextPage: false,
-      hasPrevPage: false
-    });
   }
 };
 export const createHotel = async (
