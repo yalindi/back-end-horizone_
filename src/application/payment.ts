@@ -3,10 +3,7 @@ import util from "util";
 import stripe from "../infrastructure/stripe";
 import Booking from "../infrastructure/entities/Booking";
 import Hotel from "../infrastructure/entities/Hotel";
-import { create } from "domain";
-import { ClientSecrets } from "openai/resources/realtime/client-secrets";
-import { stat } from "fs";
-import { custom } from "zod";
+
 
 const FRONTEND_URL = process.env.CORS_ORIGIN;
 const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET as string;
