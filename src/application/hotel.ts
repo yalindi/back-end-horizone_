@@ -29,7 +29,6 @@ export const getAllHotelsWithFilters = async (
   next: NextFunction
 ) => {
   try {
-    console.log('=== FILTER DEBUG START ===');
     console.log('Raw query params:', req.query);
 
     const {
@@ -55,11 +54,10 @@ export const getAllHotelsWithFilters = async (
       }
 
       if (locationNames.length > 0) {
-        // Use partial matching instead of exact matching
         query.location = {
           $in: locationNames.map(name => new RegExp(name, 'i'))
         };
-        console.log('Using partial match query:', query.location);
+        console.log(query.location);
       }
     }
 
@@ -97,14 +95,6 @@ export const getAllHotelsWithFilters = async (
       default: sortOptions = { createdAt: -1 };
     }
 
-    console.log('Final MongoDB query:', JSON.stringify(query, null, 2));
-    console.log('Sort options:', sortOptions);
-    console.log('Skip:', skip, 'Limit:', limitNum);
-
-    //check what hotels exist without filters
-    const allHotelsCount = await Hotel.countDocuments({});
-    console.log('Total hotels in database:', allHotelsCount);
-
     const [hotels, totalCount] = await Promise.all([
       Hotel.find(query)
         .sort(sortOptions)
@@ -113,10 +103,6 @@ export const getAllHotelsWithFilters = async (
         .populate('reviews'),
       Hotel.countDocuments(query)
     ]);
-
-    console.log('Hotels found:', hotels.length);
-    console.log('Total count for query:', totalCount);
-    console.log('=== FILTER DEBUG END ===');
 
     res.status(200).json({
       hotels,
